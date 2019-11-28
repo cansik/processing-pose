@@ -39,6 +39,9 @@ class PipelineConfig {
     @StringParameter("Processing Time", isEditable = false)
     var processingTime = DataModel("- ms")
 
+    @StringParameter("FPS", isEditable = false)
+    var framesPerSecond = DataModel("-")
+
     @LabelParameter("Pre-Processing")
     private val inputLabel = ""
 

@@ -115,6 +115,7 @@ abstract class Pipeline(
                         config.processingTime.value = "${processWatch.elapsed()} ms"
                         config.inputWidth.fire()
                         config.inputHeight.fire()
+                        config.framesPerSecond.value = (1000.0 / processWatch.elapsed()).format(0)
                     }
 
                     onFrameProcessed.invoke(this)

@@ -105,6 +105,9 @@ object TrackingApplication {
                     if (config.pipeline.displayOutput.value) {
                         pipeline.waitForNewFrameAvailable()
 
+                        canvasFrame.setCanvasSize(config.pipeline.inputWidth.value,
+                            config.pipeline.inputHeight.value)
+
                         synchronized(pipelineLock) {
                             if (config.displayProcessed.value) {
                                 drawImage(pipeline.processedFrame, pipeline.annotationFrame)
