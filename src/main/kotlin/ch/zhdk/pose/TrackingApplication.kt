@@ -288,6 +288,7 @@ object TrackingApplication {
             PipelineType.Passthrough -> PassthroughPipeline(config.pipeline, EmptyInputProvider(), pipelineLock)
             PipelineType.OpenPose -> OpenPosePipeline(config.pipeline, createInputProvider(), pipelineLock)
             PipelineType.FaceDetection -> FaceDetectionPipeline(config.pipeline, createInputProvider(), pipelineLock)
+            PipelineType.LightOpenPose -> LightOpenPosePipeline(config.pipeline, createInputProvider(), pipelineLock)
         }
     }
 }

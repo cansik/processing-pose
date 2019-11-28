@@ -11,7 +11,7 @@ class PipelineConfig {
 
     @Expose
     @EnumParameter("Pipeline")
-    var pipelineType = DataModel(PipelineType.FaceDetection)
+    var pipelineType = DataModel(PipelineType.LightOpenPose)
 
     @BooleanParameter("Processing Enabled")
     var enabled = DataModel(true)
