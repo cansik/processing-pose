@@ -8,8 +8,10 @@ import ch.zhdk.pose.javacv.width
 import org.bytedeco.javacpp.indexer.FloatIndexer
 import org.bytedeco.opencv.global.opencv_core.CV_32F
 import org.bytedeco.opencv.global.opencv_dnn.*
+import org.bytedeco.opencv.global.opencv_imgproc.resize
 import org.bytedeco.opencv.opencv_core.*
 import java.nio.file.Paths
+import kotlin.math.roundToInt
 
 class FaceDetectionPipeline(config: PipelineConfig, inputProvider: InputProvider, pipelineLock: Any = Any()) :
     Pipeline(config, inputProvider, pipelineLock) {
@@ -24,9 +26,10 @@ class FaceDetectionPipeline(config: PipelineConfig, inputProvider: InputProvider
     }
 
     override fun detectPose(frame: Mat, timestamp: Long) {
+
         //resize the image to match the input size of the model
-        //resize(, image, Size(300, 300))
-        val inpBlob = blobFromImage(frame, 1.0, Size(frame.width(), frame.height()), Scalar(104.0, 177.0, 123.0, 0.0), false, false, CV_32F)
+        val inputSize = Size((frame.width() * config.imageScale.value).roundToInt(), (frame.height() * config.imageScale.value).roundToInt())
+        val inpBlob = blobFromImage(frame, 1.0, inputSize, Scalar(104.0, 177.0, 123.0, 0.0), false, false, CV_32F)
         net.setInput(inpBlob)
 
         val output = net.forward()

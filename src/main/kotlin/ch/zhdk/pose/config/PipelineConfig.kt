@@ -59,4 +59,8 @@ class PipelineConfig {
     @Expose
     @SliderParameter("Confidence Threshold", 0.0, 1.0, 0.05, snap = true)
     var threshold = DataModel(0.5)
+
+    @Expose
+    @SliderParameter("Image Scale", 0.05, 1.0, 0.05, snap = true)
+    var imageScale = DataModel(1.0)
 }
