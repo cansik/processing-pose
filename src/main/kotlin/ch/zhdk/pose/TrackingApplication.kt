@@ -276,7 +276,7 @@ object TrackingApplication {
                 config.input.displaySecondIRStream.value,
                 config = config.input
             )
-            InputProviderType.Image -> ImageInputProvider(Paths.get("data/human.jpg"))
+            InputProviderType.Image -> ImageInputProvider(Paths.get("data/COCO_val2014_000000000241.jpg"))
         }
     }
 
@@ -284,6 +284,7 @@ object TrackingApplication {
         return when (config.pipeline.pipelineType.value) {
             PipelineType.Passthrough -> PassthroughPipeline(config.pipeline, EmptyInputProvider(), pipelineLock)
             PipelineType.OpenPose -> OpenPosePipeline(config.pipeline, createInputProvider(), pipelineLock)
+            PipelineType.FaceDetection -> FaceDetectionPipeline(config.pipeline, createInputProvider(), pipelineLock)
         }
     }
 }

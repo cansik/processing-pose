@@ -11,7 +11,7 @@ class PipelineConfig {
 
     @Expose
     @EnumParameter("Pipeline")
-    var pipelineType = DataModel(PipelineType.OpenPose)
+    var pipelineType = DataModel(PipelineType.FaceDetection)
 
     @BooleanParameter("Processing Enabled")
     var enabled = DataModel(true)
@@ -49,4 +49,11 @@ class PipelineConfig {
     @Expose
     @SliderParameter("Gamma Correction", 0.04, 4.0, 0.01)
     var gammaCorrection = DataModel(1.0)
+
+    @LabelParameter("Detection")
+    private val detectionLabel = ""
+
+    @Expose
+    @SliderParameter("Confidence Threshold", 0.0, 1.0, 0.05, snap = true)
+    var threshold = DataModel(0.5)
 }
