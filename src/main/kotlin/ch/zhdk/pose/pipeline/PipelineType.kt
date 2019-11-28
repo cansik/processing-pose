@@ -4,5 +4,6 @@ enum class PipelineType {
     Passthrough,
     OpenPose,
     FaceDetection,
-    LightOpenPose
+    LightOpenPose,
+    LightOpenPoseTorch
 }

@@ -16,7 +16,7 @@ import java.nio.file.Paths
 import kotlin.math.roundToInt
 
 
-class LightOpenPosePipeline(config: PipelineConfig, inputProvider: InputProvider, pipelineLock: Any = Any()) :
+class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvider, pipelineLock: Any = Any()) :
     Pipeline(config, inputProvider, pipelineLock) {
 
     private val xmlPath = Paths.get("models/light/INT8/human-pose-estimation-0001.xml").toAbsolutePath()
@@ -50,8 +50,6 @@ class LightOpenPosePipeline(config: PipelineConfig, inputProvider: InputProvider
         val points = mutableListOf<Point2f>()
         for(i in 0 until nPoints) {
             val probMap = Mat(matHeight, matWidth, CV_32F, output.ptr(0, i))
-
-            println("ProbMap: ${probMap.toString()} Size: ${output.size(0)}")
 
             // store prob map
             imwrite("maps/probMap_$i.png", probMap)
