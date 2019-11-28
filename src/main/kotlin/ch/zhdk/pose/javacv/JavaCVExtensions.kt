@@ -1,9 +1,6 @@
 package ch.zhdk.pose.javacv
 
-import org.bytedeco.opencv.opencv_core.Point
-import org.bytedeco.opencv.opencv_core.Point2d
-import org.bytedeco.opencv.opencv_core.Size
-import org.bytedeco.opencv.opencv_core.Size2d
+import org.bytedeco.opencv.opencv_core.*
 import kotlin.math.atan2
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -14,6 +11,10 @@ fun Point.toPoint2d() : Point2d {
 }
 
 fun Point2d.toPoint() : Point {
+    return Point(this.x().roundToInt(), this.y().roundToInt())
+}
+
+fun Point2f.toPoint() : Point {
     return Point(this.x().roundToInt(), this.y().roundToInt())
 }
 

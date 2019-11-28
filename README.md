@@ -1,2 +1,2 @@
-# processing-skeleton-tracking
-Skeleton Tracking for Processing Example
+# Pose Estimation Example
+Just a repository to try out pose estimations.
