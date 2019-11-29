@@ -1,0 +1,1 @@
+./human_pose_estimation_demo -m '../models/light/INT8/human-pose-estimation-0001.xml'

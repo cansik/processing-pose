@@ -25,7 +25,7 @@ class LightOpenPoseTorchPipeline(config: PipelineConfig, inputProvider: InputPro
 
     init {
         //net.setPreferableBackend(DNN_BACKEND_VKCOM)
-        net.setPreferableTarget(DNN_TARGET_OPENCL)
+        //net.setPreferableTarget(DNN_TARGET_OPENCL)
     }
 
     override fun detectPose(frame: Mat, timestamp: Long) {

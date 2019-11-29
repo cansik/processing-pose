@@ -26,7 +26,7 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
 
     init {
         net.setPreferableBackend(DNN_BACKEND_INFERENCE_ENGINE)
-        net.setPreferableTarget(DNN_TARGET_OPENCL)
+        //net.setPreferableTarget(DNN_TARGET_OPENCL)
     }
 
     override fun detectPose(frame: Mat, timestamp: Long) {
