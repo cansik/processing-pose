@@ -12,6 +12,7 @@ import org.bytedeco.opencv.global.opencv_core.minMaxLoc
 import org.bytedeco.opencv.global.opencv_dnn.*
 import org.bytedeco.opencv.global.opencv_imgcodecs.imwrite
 import org.bytedeco.opencv.opencv_core.*
+import org.bytedeco.opencv.opencv_dnn.Net
 import java.nio.file.Paths
 import kotlin.math.roundToInt
 
@@ -22,11 +23,17 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
     private val xmlPath = Paths.get("models/light/INT8/human-pose-estimation-0001.xml").toAbsolutePath()
     private val weightPath = Paths.get("models/light/INT8/human-pose-estimation-0001.bin").toAbsolutePath()
 
-    private val net = readNetFromModelOptimizer(xmlPath.toString(), weightPath.toString())
+    private val net : Net
 
     init {
+        // load native tools
+        System.load("/opt/intel/openvino/deployment_tools/inference_engine/external/mkltiny_mac/lib/libmkl_tiny_tbb.dylib")
+        println("library loaded!")
+
+        // load network
+        net = readNetFromModelOptimizer(xmlPath.toString(), weightPath.toString())
         net.setPreferableBackend(DNN_BACKEND_INFERENCE_ENGINE)
-        //net.setPreferableTarget(DNN_TARGET_OPENCL)
+        net.setPreferableTarget(DNN_TARGET_CPU)
     }
 
     override fun detectPose(frame: Mat, timestamp: Long) {
