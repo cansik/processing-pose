@@ -22,7 +22,7 @@ class FaceDetectionPipeline(config: PipelineConfig, inputProvider: InputProvider
     private val net = readNetFromCaffe(protoPath.toString(), weightPath.toString())
 
     init {
-        net.setPreferableTarget(DNN_TARGET_OPENCL)
+        //net.setPreferableTarget(DNN_TARGET_OPENCL)
     }
 
     override fun detectPose(frame: Mat, timestamp: Long) {

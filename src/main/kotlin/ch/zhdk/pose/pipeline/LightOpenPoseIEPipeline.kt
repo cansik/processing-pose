@@ -2,17 +2,15 @@ package ch.zhdk.pose.pipeline
 
 import ch.zhdk.pose.config.PipelineConfig
 import ch.zhdk.pose.io.InputProvider
-import ch.zhdk.pose.javacv.height
-import ch.zhdk.pose.javacv.threshold
-import ch.zhdk.pose.javacv.width
+import ch.zhdk.pose.javacv.*
+import org.bytedeco.javacpp.indexer.FloatBufferIndexer
+import org.bytedeco.javacpp.indexer.FloatRawIndexer
 import org.bytedeco.opencv.global.opencv_core.CV_32F
 import org.bytedeco.opencv.global.opencv_core.CV_8U
 import org.bytedeco.opencv.global.opencv_dnn.*
 import org.bytedeco.opencv.global.opencv_imgcodecs.*
 import org.bytedeco.opencv.global.opencv_imgproc.*
-import org.bytedeco.opencv.opencv_core.Mat
-import org.bytedeco.opencv.opencv_core.Scalar
-import org.bytedeco.opencv.opencv_core.Size
+import org.bytedeco.opencv.opencv_core.*
 import org.bytedeco.opencv.opencv_dnn.Net
 import java.nio.file.Paths
 import kotlin.math.roundToInt
@@ -21,11 +19,15 @@ import kotlin.math.roundToInt
 class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvider, pipelineLock: Any = Any()) :
     Pipeline(config, inputProvider, pipelineLock) {
 
+    // https://github.com/spmallick/learnopencv/blob/master/OpenPose-Multi-Person/multi-person-openpose.cpp
+
     private val xmlPath = Paths.get("models/light/INT8/human-pose-estimation-0001.xml").toAbsolutePath()
     private val weightPath = Paths.get("models/light/INT8/human-pose-estimation-0001.bin").toAbsolutePath()
 
     private val net : Net
     private val nPoints = 18
+
+    private data class KeyPoint(val id : Int, val location : Point2d, val probability : Float)
 
     init {
         // load native tiny tbb as a workaround
@@ -39,26 +41,25 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
     }
 
     override fun detectPose(frame: Mat, timestamp: Long) {
-        //val frame = imread("data/group.jpg", IMREAD_COLOR)
-
         // prepare input image
         val frameHeight = 368
         val frameWidth = (frameHeight.toFloat() / frame.height() * frame.width()).roundToInt()
         val size = Size(frameWidth, frameHeight)
 
-        // resize image
-        val input = Mat()
-        resize(frame, input, size)
-
         val zeroScalar = Scalar(0.0, 0.0, 0.0, 0.0)
-        val inpBlob  = blobFromImage(input, 1.0, size, zeroScalar, false, false, CV_32F)
+        val inpBlob  = blobFromImage(frame, 1.0, size, zeroScalar, false, false, CV_32F)
         net.setInput(inpBlob)
 
         val output = net.forward()
-        val netOutputParts = splitNetOutputBlobToParts(size, output)
+        val netOutputParts = splitNetOutputBlobToParts(frame.size(), output)
 
         (0 until nPoints).map { i ->
-            getKeyPoints(netOutputParts[i], 0.1, i)
+            val keyPoints = extractKeyPoints(netOutputParts[i], config.threshold.value, i)
+
+            // mark keypoints
+            keyPoints.forEach {
+                frame.drawCircle(it.location.toPoint(), 5, AbstractScalar.RED)
+            }
         }
     }
 
@@ -76,7 +77,8 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
         }
     }
 
-    private fun getKeyPoints(probMap : Mat, threshold : Double, index : Int) {
+    private fun extractKeyPoints(probMap : Mat, threshold : Double, index : Int) : List<KeyPoint> {
+        // smooth prob map
         val smoothProbMap = Mat()
         GaussianBlur(probMap, smoothProbMap, Size( 3, 3 ), 0.0,  0.0, 0)
 
@@ -85,24 +87,14 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
 
         imwrite("maps/k_$index.bmp", smoothProbMap)
 
-        /*
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours(maskedProbMap,contours,cv::RETR_TREE,cv::CHAIN_APPROX_SIMPLE);
+        // create indexer
+        val indexer = probMap.createIndexer<FloatRawIndexer>()
 
-        for(int i = 0; i < contours.size();++i){
-            cv::Mat blobMask = cv::Mat::zeros(smoothProbMap.rows,smoothProbMap.cols,smoothProbMap.type());
-
-            cv::fillConvexPoly(blobMask,contours[i],cv::Scalar(1));
-
-            double maxVal;
-            cv::Point maxLoc;
-
-            cv::minMaxLoc(smoothProbMap.mul(blobMask),0,&maxVal,0,&maxLoc);
-
-            keyPoints.push_back(KeyPoint(maxLoc, probMap.at<float>(maxLoc.y,maxLoc.x)));
+        // extract points
+        val components = smoothProbMap.connectedComponentsWithStats().getConnectedComponents()
+        return components.map {
+            val pos = it.centroid.toPoint()
+            KeyPoint(index, it.centroid, indexer.get(pos.y().toLong(), pos.x().toLong()))
         }
-         */
-
-        // https://github.com/spmallick/learnopencv/blob/master/OpenPose-Multi-Person/multi-person-openpose.cpp
     }
 }
