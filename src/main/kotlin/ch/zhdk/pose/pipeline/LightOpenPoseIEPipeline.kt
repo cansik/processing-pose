@@ -2,16 +2,17 @@ package ch.zhdk.pose.pipeline
 
 import ch.zhdk.pose.config.PipelineConfig
 import ch.zhdk.pose.io.InputProvider
-import ch.zhdk.pose.javacv.drawCircle
 import ch.zhdk.pose.javacv.height
-import ch.zhdk.pose.javacv.toPoint
+import ch.zhdk.pose.javacv.threshold
 import ch.zhdk.pose.javacv.width
-import org.bytedeco.javacpp.DoublePointer
 import org.bytedeco.opencv.global.opencv_core.CV_32F
-import org.bytedeco.opencv.global.opencv_core.minMaxLoc
+import org.bytedeco.opencv.global.opencv_core.CV_8U
 import org.bytedeco.opencv.global.opencv_dnn.*
-import org.bytedeco.opencv.global.opencv_imgcodecs.imwrite
-import org.bytedeco.opencv.opencv_core.*
+import org.bytedeco.opencv.global.opencv_imgcodecs.*
+import org.bytedeco.opencv.global.opencv_imgproc.*
+import org.bytedeco.opencv.opencv_core.Mat
+import org.bytedeco.opencv.opencv_core.Scalar
+import org.bytedeco.opencv.opencv_core.Size
 import org.bytedeco.opencv.opencv_dnn.Net
 import java.nio.file.Paths
 import kotlin.math.roundToInt
@@ -24,11 +25,12 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
     private val weightPath = Paths.get("models/light/INT8/human-pose-estimation-0001.bin").toAbsolutePath()
 
     private val net : Net
+    private val nPoints = 18
 
     init {
-        // load native tools
+        // load native tiny tbb as a workaround
         System.load("/opt/intel/openvino/deployment_tools/inference_engine/external/mkltiny_mac/lib/libmkl_tiny_tbb.dylib")
-        println("library loaded!")
+        println("libmkl_tiny_tbb.dylib loaded!")
 
         // load network
         net = readNetFromModelOptimizer(xmlPath.toString(), weightPath.toString())
@@ -37,52 +39,70 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
     }
 
     override fun detectPose(frame: Mat, timestamp: Long) {
+        //val frame = imread("data/group.jpg", IMREAD_COLOR)
+
         // prepare input image
         val frameHeight = 368
         val frameWidth = (frameHeight.toFloat() / frame.height() * frame.width()).roundToInt()
+        val size = Size(frameWidth, frameHeight)
+
+        // resize image
+        val input = Mat()
+        resize(frame, input, size)
 
         val zeroScalar = Scalar(0.0, 0.0, 0.0, 0.0)
-        val inpBlob = blobFromImage(frame, 1.0 / 255, Size(frameWidth, frameHeight), zeroScalar, false, false, CV_32F)
+        val inpBlob  = blobFromImage(input, 1.0, size, zeroScalar, false, false, CV_32F)
         net.setInput(inpBlob)
 
         val output = net.forward()
+        val netOutputParts = splitNetOutputBlobToParts(size, output)
 
-        val nPoints = output.size(1)
+        (0 until nPoints).map { i ->
+            getKeyPoints(netOutputParts[i], 0.1, i)
+        }
+    }
+
+    private fun splitNetOutputBlobToParts(targetSize : Size, output : Mat) : List<Mat> {
+        val nParts = output.size(1)
         val matHeight = output.size(2)
         val matWidth = output.size(3)
 
-        println("nPoints: $nPoints")
-
-        // find the position of the body parts
-        val points = mutableListOf<Point2f>()
-        for(i in 0 until nPoints) {
+        return (0 until nParts).map {i ->
             val probMap = Mat(matHeight, matWidth, CV_32F, output.ptr(0, i))
 
-            // store prob map
-            imwrite("maps/probMap_$i.png", probMap)
-
-            val p = Point2f(-1f,-1f)
-
-            val minVal = DoublePointer()
-            val minLoc = Point()
-            val confidence = DoublePointer()
-            val maxLoc = Point()
-
-            minMaxLoc(probMap, minVal, confidence, minLoc, maxLoc, null)
-
-            if(confidence.isNull)
-                continue
-
-            if (confidence.get() > config.threshold.value)
-            {
-                p.x(maxLoc.x() + (frameWidth.toFloat() / matWidth))
-                p.y(maxLoc.y() + (frameHeight.toFloat() / matHeight))
-
-                frame.drawCircle(p.toPoint(), 10, AbstractScalar.MAGENTA)
-            }
-            points.add(p)
+            val dst = Mat()
+            resize(probMap, dst, targetSize)
+            dst
         }
+    }
 
-        println("found ${points.size} points!")
+    private fun getKeyPoints(probMap : Mat, threshold : Double, index : Int) {
+        val smoothProbMap = Mat()
+        GaussianBlur(probMap, smoothProbMap, Size( 3, 3 ), 0.0,  0.0, 0)
+
+        smoothProbMap.threshold(threshold, 255.0, THRESH_BINARY)
+        smoothProbMap.convertTo(smoothProbMap, CV_8U)
+
+        imwrite("maps/k_$index.bmp", smoothProbMap)
+
+        /*
+        std::vector<std::vector<cv::Point> > contours;
+        cv::findContours(maskedProbMap,contours,cv::RETR_TREE,cv::CHAIN_APPROX_SIMPLE);
+
+        for(int i = 0; i < contours.size();++i){
+            cv::Mat blobMask = cv::Mat::zeros(smoothProbMap.rows,smoothProbMap.cols,smoothProbMap.type());
+
+            cv::fillConvexPoly(blobMask,contours[i],cv::Scalar(1));
+
+            double maxVal;
+            cv::Point maxLoc;
+
+            cv::minMaxLoc(smoothProbMap.mul(blobMask),0,&maxVal,0,&maxLoc);
+
+            keyPoints.push_back(KeyPoint(maxLoc, probMap.at<float>(maxLoc.y,maxLoc.x)));
+        }
+         */
+
+        // https://github.com/spmallick/learnopencv/blob/master/OpenPose-Multi-Person/multi-person-openpose.cpp
     }
 }

@@ -279,7 +279,7 @@ object TrackingApplication {
                 config.input.displaySecondIRStream.value,
                 config = config.input
             )
-            InputProviderType.Image -> ImageInputProvider(Paths.get("data/COCO_val2014_000000000241.jpg"))
+            InputProviderType.Image -> ImageInputProvider(Paths.get("data/group.jpg"))
         }
     }
 
