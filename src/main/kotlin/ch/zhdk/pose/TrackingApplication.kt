@@ -218,12 +218,6 @@ object TrackingApplication {
             oscTimer.duration = (1000.0 / config.osc.updateFrequency.value).roundToLong()
         }
         config.osc.updateFrequency.fireLatest()
-
-        config.input.displaySecondIRStream.onChanged += {
-            if (pipeline.inputProvider is RealSense2InputProvider) {
-                (pipeline.inputProvider as RealSense2InputProvider).displaySecondChannel = it
-            }
-        }
     }
 
     private fun initPipelineHandlers(pipeline: Pipeline) {
@@ -274,9 +268,6 @@ object TrackingApplication {
                 config.input.realSenseWidth.value,
                 config.input.realSenseHeight.value,
                 config.input.realSenseFrameRate.value,
-                config.input.enableRGBIRStream.value,
-                config.input.enableDualIR.value,
-                config.input.displaySecondIRStream.value,
                 config = config.input
             )
             InputProviderType.Image -> ImageInputProvider(Paths.get("data/group.jpg"))

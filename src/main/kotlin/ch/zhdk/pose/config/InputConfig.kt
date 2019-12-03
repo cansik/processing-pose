@@ -17,7 +17,7 @@ class InputConfig {
 
     @Expose
     @EnumParameter("Input Provider")
-    var inputProvider = DataModel(InputProviderType.VideoInput)
+    var inputProvider = DataModel(InputProviderType.RealSense2)
 
     @LabelParameter("CameraInput")
     private val webCamLabel = ""
@@ -43,7 +43,7 @@ class InputConfig {
 
     @Expose
     @NumberParameter("Input Width", "px")
-    var realSenseWidth = DataModel(848)
+    var realSenseWidth = DataModel(640)
 
     @Expose
     @NumberParameter("Input Height", "px")
@@ -52,32 +52,4 @@ class InputConfig {
     @Expose
     @NumberParameter("Frame Rate", "fps")
     var realSenseFrameRate = DataModel(30)
-
-    @Expose
-    @BooleanParameter("Enable RGB IR Stream")
-    var enableRGBIRStream = DataModel(false)
-
-    @Expose
-    @BooleanParameter("Enable Dual-IR Stream")
-    var enableDualIR = DataModel(false)
-
-    @Expose
-    @BooleanParameter("Display Second IR Stream")
-    var displaySecondIRStream = DataModel(false)
-
-    @Expose
-    @BooleanParameter("Enable Auto White Balance")
-    var enableAutoWhiteBalance = DataModel(true)
-
-    @Expose
-    @BooleanParameter("Enable Auto Exposure")
-    var enableAutoExposure = DataModel(true)
-
-    @Expose
-    @SliderParameter("Exposure", 0.0, 50000.0, 500.0, snap = true)
-    var autoExposure = DataModel(33000f)
-
-    @Expose
-    @BooleanParameter("Enable IR Emitter")
-    var enableIREmitter = DataModel(false)
 }
