@@ -14,6 +14,7 @@ import org.bytedeco.opencv.opencv_core.*
 import org.bytedeco.opencv.opencv_dnn.Net
 import java.nio.file.Paths
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 
 class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvider, pipelineLock: Any = Any()) :
@@ -26,6 +27,8 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
 
     private val net : Net
     private val nPoints = 18
+    private val inputHeight = 368
+    private val scaleFactor = 8
 
     private data class KeyPoint(val id : Int, val location : Point2d, val probability : Float)
 
@@ -42,7 +45,7 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
 
     override fun detectPose(frame: Mat, timestamp: Long) {
         // prepare input image
-        val frameHeight = 368
+        val frameHeight = inputHeight
         val frameWidth = (frameHeight.toFloat() / frame.height() * frame.width()).roundToInt()
         val size = Size(frameWidth, frameHeight)
 
@@ -51,14 +54,20 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
         net.setInput(inpBlob)
 
         val output = net.forward()
+        // todo: target size is relevant for post-process performance
         val netOutputParts = splitNetOutputBlobToParts(frame.size(), output)
 
         (0 until nPoints).map { i ->
             val keyPoints = extractKeyPoints(netOutputParts[i], config.threshold.value, i)
 
-            // mark keypoints
+            // mark scaled keypoints
             keyPoints.forEach {
-                frame.drawCircle(it.location.toPoint(), 5, AbstractScalar.RED)
+                val location = Point(
+                    (it.location.x() / frameWidth.toDouble() * frame.width() * scaleFactor).roundToInt(),
+                    (it.location.y() / frameHeight.toDouble() * frame.height() * scaleFactor).roundToInt()
+                )
+
+                frame.drawCircle(location, 5, AbstractScalar.RED)
             }
         }
     }
@@ -71,9 +80,10 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
         return (0 until nParts).map {i ->
             val probMap = Mat(matHeight, matWidth, CV_32F, output.ptr(0, i))
 
-            val dst = Mat()
-            resize(probMap, dst, targetSize)
-            dst
+            //val dst = Mat()
+            // todo: do we really have to resize?
+            //resize(probMap, dst, targetSize)
+            probMap
         }
     }
 
@@ -85,7 +95,7 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
         smoothProbMap.threshold(threshold, 255.0, THRESH_BINARY)
         smoothProbMap.convertTo(smoothProbMap, CV_8U)
 
-        imwrite("maps/k_$index.bmp", smoothProbMap)
+        //imwrite("maps/k_$index.bmp", smoothProbMap)
 
         // create indexer
         val indexer = probMap.createIndexer<FloatRawIndexer>()
@@ -93,8 +103,7 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
         // extract points
         val components = smoothProbMap.connectedComponentsWithStats().getConnectedComponents()
         return components.map {
-            val pos = it.centroid.toPoint()
-            KeyPoint(index, it.centroid, indexer.get(pos.y().toLong(), pos.x().toLong()))
+            KeyPoint(index, it.centroid, indexer.get(it.centroid.y().toLong(), it.centroid.x().toLong()))
         }
     }
 }
