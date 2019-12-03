@@ -36,6 +36,9 @@ class PipelineConfig {
     @StringParameter("Frame Time", isEditable = false)
     var frameTime = DataModel("- ms")
 
+    @StringParameter("Inference Time", isEditable = false)
+    var inferenceTime = DataModel("- ms")
+
     @StringParameter("Processing Time", isEditable = false)
     var processingTime = DataModel("- ms")
 

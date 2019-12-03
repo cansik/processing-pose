@@ -15,6 +15,7 @@ import org.bytedeco.opencv.opencv_dnn.Net
 import java.nio.file.Paths
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import kotlin.system.measureTimeMillis
 
 
 class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvider, pipelineLock: Any = Any()) :
@@ -51,9 +52,14 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
 
         val zeroScalar = Scalar(0.0, 0.0, 0.0, 0.0)
         val inpBlob  = blobFromImage(frame, 1.0, size, zeroScalar, false, false, CV_32F)
-        net.setInput(inpBlob)
 
-        val output = net.forward()
+        var output = Mat()
+        val inferenceTime = measureTimeMillis {
+            net.setInput(inpBlob)
+            output = net.forward()
+        }
+        config.inferenceTime.setSilent("$inferenceTime ms")
+
         // todo: target size is relevant for post-process performance
         val netOutputParts = splitNetOutputBlobToParts(frame.size(), output)
 
@@ -67,7 +73,8 @@ class LightOpenPoseIEPipeline(config: PipelineConfig, inputProvider: InputProvid
                     (it.location.y() / frameHeight.toDouble() * frame.height() * scaleFactor).roundToInt()
                 )
 
-                frame.drawCircle(location, 5, AbstractScalar.RED)
+                //frame.drawCircle(location, 5, AbstractScalar.RED)
+                frame.drawMarker(location, AbstractScalar.GREEN, markerSize = 20, thickness = 2)
             }
         }
     }
